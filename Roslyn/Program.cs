@@ -41,8 +41,8 @@ namespace Roslyn
                 var isOfInterest = node.IsKindAny(nodesOfInterest);
                 if (false == isOfInterest) { return null; }
 
-                // Check if node is nested within a bigger logial expression.
-                // We are only interesed in 'tips', NOT in nested nodes
+                // Check if node is nested within a bigger logcial expression.
+                // We are only interested in 'tips', NOT in nested nodes
                 var isNestedWithinAnotherNodeOfInterest = node.Ancestors()
                     .TakeWhile(x => x.IsKindAny(nodesOfInterest))
                     .Any();

@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31702.278
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Roslyn", "Roslyn\Roslyn.csproj", "{58899EB9-C94C-47E7-A110-DEEB235B039D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestSubjst", "TestSubjst\TestSubjst.csproj", "{06B6505F-D918-4E26-8640-418005C5057E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{58899EB9-C94C-47E7-A110-DEEB235B039D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58899EB9-C94C-47E7-A110-DEEB235B039D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58899EB9-C94C-47E7-A110-DEEB235B039D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58899EB9-C94C-47E7-A110-DEEB235B039D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06B6505F-D918-4E26-8640-418005C5057E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06B6505F-D918-4E26-8640-418005C5057E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06B6505F-D918-4E26-8640-418005C5057E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06B6505F-D918-4E26-8640-418005C5057E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {052EFAAC-ACAD-4159-A95F-028943B9AAFD}
+	EndGlobalSection
+EndGlobal

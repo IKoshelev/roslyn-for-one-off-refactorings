@@ -31,26 +31,26 @@ namespace Roslyn
 
             var contextsOfInterest = await GetContextsOfInterest(allNodes, async (x) =>
             {
-                var nodesOfInterest = new[]{    SyntaxKind.LogicalOrExpression,
+                var partsOfLogicalExpression = new[]{    
+                                                SyntaxKind.LogicalOrExpression,
                                                 SyntaxKind.LogicalAndExpression,
                                                 SyntaxKind.LogicalNotExpression,
                                                 SyntaxKind.ParenthesizedExpression};
 
                 var (document, node) = x;
 
-                var isOfInterest = node.IsKindAny(nodesOfInterest);
-                if (false == isOfInterest) { return null; }
+                if (false == node.IsKindAny(partsOfLogicalExpression)) { return null; }
 
                 // Check if node is nested within a bigger logcial expression.
                 // We are only interested in 'tips', NOT in nested nodes
                 var isNestedWithinAnotherNodeOfInterest = node.Ancestors()
-                    .TakeWhile(x => x.IsKindAny(nodesOfInterest))
+                    .TakeWhile(x => x.IsKindAny(partsOfLogicalExpression))
                     .Any();
 
                 if (isNestedWithinAnotherNodeOfInterest) { return null; }
 
-                // Check if node is nested within a bigger logical expression.
-                // We are only interested in 'tips', NOT in nested nodes
+                // We are looking for complex expressions with multiple
+                // || or && operators
                 var containedLogicalOperatorsCount = node.DescendantNodesAndSelf()
                     .Count(x => x.IsKindAny(SyntaxKind.LogicalOrExpression,
                                             SyntaxKind.LogicalAndExpression));

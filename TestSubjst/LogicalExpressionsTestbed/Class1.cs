@@ -10,9 +10,11 @@ namespace TestSubjst.LogicalExpressionsTestbed
     {
         public void Method1(UserDto userDto /*more args*/)
         {
-            if(userDto.IsSuspended 
+            var isUserInvalid = userDto.IsSuspended
                 || userDto.ActiveRole == null
-                || !(userDto.CredentialsStartDate < DateTime.Now && DateTime.Now < userDto.CredentialsEndDate)) 
+                || !(userDto.CredentialsStartDate < DateTime.Now && DateTime.Now < userDto.CredentialsEndDate);
+
+            if (isUserInvalid) 
             {
                 return;
             }

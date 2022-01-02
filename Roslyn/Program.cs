@@ -58,12 +58,12 @@ namespace Roslyn
                 if (containedLogicalOperatorsCount < 2) { return null; }
 
                 var declaringMethodName = node.Ancestors()
-                                            .SelectNotNull(x => x as MethodDeclarationSyntax)
+                                            .OfType<MethodDeclarationSyntax>()
                                             .FirstOrDefault()
                                             ?.Identifier.Text;
 
                 var declaringTypeName = node.Ancestors()
-                                            .SelectNotNull(x => x as TypeDeclarationSyntax)
+                                            .OfType<TypeDeclarationSyntax>()
                                             .FirstOrDefault()
                                             ?.Identifier.Text;
 
@@ -85,7 +85,7 @@ namespace Roslyn
                     = node
                         .DescendantNodesAndSelf()
                         .Where(x => x.IsKind(SyntaxKind.SimpleMemberAccessExpression))
-                        .SelectNotNull(x => x as MemberAccessExpressionSyntax)
+                        .OfType<MemberAccessExpressionSyntax>()
                         .Where(x => x.Expression.IsKind(SyntaxKind.IdentifierName))
 
                         // note, that before were were working just with syntax.

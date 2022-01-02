@@ -22,7 +22,7 @@ namespace Roslyn
             Regex whitespaceRemover = new Regex(@"\s\s+");
 
             using var workspace = MSBuildWorkspace.Create();
-            var project = await workspace.OpenProjectAsync(@"..\..\..\..\TestSubjst\TestSubjst.csproj");
+            var project = await workspace.OpenProjectAsync(@"..\..\..\..\TestSubject\TestSubject.csproj");
 
             IEnumerable<(Document document, SyntaxNode node)> allNodes =
                     await GetAllNodeOfAllDocuments(project.Documents.ToArray());
@@ -133,34 +133,6 @@ namespace Roslyn
             var report = PrepareReport(similarContexts);
         }
 
-        private static string PrepareReport(
-            (Context<LoicalExpressionContext> context, (Context<LoicalExpressionContext> context, int sameMembersAccessCount)[] similarContexts)[] similarContexts)
-        {
-            var reportsPerContext = similarContexts
-                                        .Select(x =>
-@$"Original: {x.context.meta.declaringTypeName}.{x.context.meta.declaringMethodName}
-
-{x.context.meta.fullText}
-
-Similar: 
-
-{string.Join("\r\n", x.similarContexts.Select(y =>
-$@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
-
-{y.context.meta.fullText}
-
-"))}
-");
-
-            var report =
-@$"
-{String.Join("\r\n--------------------------------------------------------------------------------------\r\n",
-reportsPerContext)}
-";
-
-            return report;
-        }
-
         record LoicalExpressionContext(
             SyntaxNode node,
             (string typeName, string memberName)[] memberAccessesInvolved,
@@ -200,7 +172,34 @@ reportsPerContext)}
                     .ToArray();
         }
 
-        
-        
+        private static string PrepareReport(
+    (Context<LoicalExpressionContext> context, (Context<LoicalExpressionContext> context, int sameMembersAccessCount)[] similarContexts)[] similarContexts)
+        {
+            var reportsPerContext = similarContexts
+                                        .Select(x =>
+@$"Original: {x.context.meta.declaringTypeName}.{x.context.meta.declaringMethodName}
+
+{x.context.meta.fullText}
+
+Similar: 
+
+{string.Join("\r\n", x.similarContexts.Select(y =>
+$@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
+
+{y.context.meta.fullText}
+
+"))}
+");
+
+            var report =
+@$"
+{String.Join("\r\n--------------------------------------------------------------------------------------\r\n",
+reportsPerContext)}
+";
+
+            return report;
+        }
+
+
     }
 }

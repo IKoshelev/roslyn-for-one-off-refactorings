@@ -71,9 +71,8 @@ namespace Roslyn
                                 await document.GetSyntaxTreeAsync());
 
                 // We are interested in logical expressions which 
-                // involve the same members of the same type
-
-                // Here we prepare lists of involved SimpleMemberAccessExpression
+                // involve the same members of the same type.
+                // We prepare lists of involved SimpleMemberAccessExpression
                 // that will be used in similarity analysis down the road.
                 // we are looking for expressions like x.y,
                 // SimpleMemberAccessExpression on an IdentifierName
@@ -88,9 +87,14 @@ namespace Roslyn
                         .Where(x => x.IsKind(SyntaxKind.SimpleMemberAccessExpression))
                         .SelectNotNull(x => x as MemberAccessExpressionSyntax)
                         .Where(x => x.Expression.IsKind(SyntaxKind.IdentifierName))
+
+                        // note, that before were were working just with syntax.
+                        // here we are using semantic model of our code to get
+                        // information about actual type contained in a given variable
                         .Select(x =>
                         (
-                            typeName: model.GetTypeInfo(x.Expression).Type?.Name,
+                            // you may want to include namespace
+                            typeName: model.GetTypeInfo(x.Expression).Type?.Name, 
                             memberName: x.Name.Identifier.Text
                         ))
                         .ToArray();

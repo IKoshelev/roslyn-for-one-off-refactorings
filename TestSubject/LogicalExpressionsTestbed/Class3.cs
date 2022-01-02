@@ -10,9 +10,8 @@ namespace TestSubjst.LogicalExpressionsTestbed
     {
         public void Method1(UserDto u /*more args*/)
         {
-            if (u.IsSuspended
-                || u.ActiveRole == null
-                || !(u.CredentialsStartDate < DateTime.Now && DateTime.Now < u.CredentialsEndDate)
+            if (!(u.CredentialsStartDate < DateTime.Now && DateTime.Now < u.CredentialsEndDate)
+                || u.IsSuspended
                 || u.ActiveRole != Roles.Admin)
             {
                 return;

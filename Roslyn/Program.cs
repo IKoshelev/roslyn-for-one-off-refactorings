@@ -49,8 +49,8 @@ namespace Roslyn
 
                 if (isNestedWithinAnotherNodeOfInterest) { return null; }
 
-                // We are only interested in complex expressions,
-                // which contain at-least 3 logical operators
+                // Check if node is nested within a bigger logical expression.
+                // We are only interested in 'tips', NOT in nested nodes
                 var containedLogicalOperatorsCount = node.DescendantNodesAndSelf()
                     .Count(x => x.IsKindAny(SyntaxKind.LogicalOrExpression,
                                             SyntaxKind.LogicalAndExpression));
@@ -70,10 +70,10 @@ namespace Roslyn
                 var model = compilation.GetSemanticModel(
                                 await document.GetSyntaxTreeAsync());
 
-                // We are interested in logical expressinos which 
-                // invlove the same members of the same type
+                // We are interested in logical expressions which 
+                // involve the same members of the same type
 
-                // Here we prepare lists of invlovled SimpleMemberAccessExpression
+                // Here we prepare lists of involved SimpleMemberAccessExpression
                 // that will be used in similarity analysis down the road.
                 // we are looking for expressions like x.y,
                 // SimpleMemberAccessExpression on an IdentifierName
@@ -82,7 +82,7 @@ namespace Roslyn
                 // x.y
                 // x.y.z.c
                 // x.y.Contains(...)
-                (string typeName, string memberName)[] memberAccesExpressions
+                (string typeName, string memberName)[] memberAccessExpressions
                     = node
                         .DescendantNodesAndSelf()
                         .Where(x => x.IsKind(SyntaxKind.SimpleMemberAccessExpression))
@@ -97,9 +97,9 @@ namespace Roslyn
 
                 var fullText = node.GetText().ToString();
                 var condensedText = whitespaceRemover.Replace(fullText, "");
-                return new LoicalExpressionContext(
+                return new LogicalExpressionContext(
                     node,
-                    memberAccesExpressions,
+                    memberAccessExpressions,
                     declaringMethodName,
                     declaringTypeName,
                     fullText,
@@ -111,7 +111,7 @@ namespace Roslyn
             // This can be removed, but it may be a good idea to leave it there during exploraiton phase.
             var similarContexts = contextsOfInterest.Select(context =>
             {
-                (Context<LoicalExpressionContext> context, int sameMembersAccessCount)[]
+                (Context<LogicalExpressionContext> context, int sameMembersAccessCount)[]
                     contextsWithSimilarMemberAccessed =
                         contextsOfInterest
                             .Where(x => x != context)
@@ -133,7 +133,7 @@ namespace Roslyn
             var report = PrepareReport(similarContexts);
         }
 
-        record LoicalExpressionContext(
+        record LogicalExpressionContext(
             SyntaxNode node,
             (string typeName, string memberName)[] memberAccessesInvolved,
             string declaringMethodName,
@@ -173,7 +173,7 @@ namespace Roslyn
         }
 
         private static string PrepareReport(
-    (Context<LoicalExpressionContext> context, (Context<LoicalExpressionContext> context, int sameMembersAccessCount)[] similarContexts)[] similarContexts)
+    (Context<LogicalExpressionContext> context, (Context<LogicalExpressionContext> context, int sameMembersAccessCount)[] similarContexts)[] similarContexts)
         {
             var reportsPerContext = similarContexts
                                         .Select(x =>

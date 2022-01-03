@@ -57,6 +57,10 @@ namespace Roslyn
 
                 if (containedLogicalOperatorsCount < 2) { return null; }
 
+                // By this point we know, that current examined node is of interest
+                // to our analysis, and all that is left is to prepare relevant 
+                // metadata for future analysis.
+
                 var declaringMethodName = node.Ancestors()
                                             .OfType<MethodDeclarationSyntax>()
                                             .FirstOrDefault()
@@ -70,8 +74,6 @@ namespace Roslyn
                 var model = compilation.GetSemanticModel(
                                 await document.GetSyntaxTreeAsync());
 
-                // We are interested in logical expressions which 
-                // involve the same members of the same type.
                 // We prepare lists of involved SimpleMemberAccessExpression
                 // that will be used in similarity analysis down the road.
                 // we are looking for expressions like x.y,

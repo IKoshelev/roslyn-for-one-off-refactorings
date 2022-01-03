@@ -27,7 +27,7 @@ namespace Roslyn
             IEnumerable<(Document document, SyntaxNode node)> allNodes =
                     await GetAllNodeOfAllDocuments(project.Documents.ToArray());
 
-            var compilation = await project.GetCompilationAsync();
+            var compilation = new Lazy<Task<Compilation>>(() => project.GetCompilationAsync());
 
             var contextsOfInterest = await GetContextsOfInterest(allNodes, async (x) =>
             {
@@ -58,7 +58,7 @@ namespace Roslyn
                 if (containedLogicalOperatorsCount < 2) { return null; }
 
                 // By this point we know, that current examined node is of interest
-                // to our analysis, and all that is left is to prepare relevant 
+                // to us, and all that is left is to prepare relevant 
                 // metadata for future analysis.
 
                 var declaringMethodName = node.Ancestors()
@@ -71,15 +71,16 @@ namespace Roslyn
                                             .FirstOrDefault()
                                             ?.Identifier.Text;
 
-                var model = compilation.GetSemanticModel(
+                var model = (await compilation.Value).GetSemanticModel(
                                 await document.GetSyntaxTreeAsync());
 
-                // We prepare lists of involved SimpleMemberAccessExpression
-                // that will be used in similarity analysis down the road.
-                // we are looking for expressions like x.y,
-                // SimpleMemberAccessExpression on an IdentifierName
-                // bound to an instance of some type.
-                // We will get the 'x.y' part of expressions like 
+                // We prepare list of SimpleMemberAccessExpression nodes contained
+                // within the syntax sub-tree rooted at current node (it's descendants),
+                // the list will be used in similarity analysis down the road.
+                // We are looking for expressions like 'x.y',
+                // this code will be represented by a SimpleMemberAccessExpression
+                // having Expression property of IdentifierName.
+                // We will get the 'x.y' part of code like 
                 // x.y
                 // x.y.z.c
                 // x.y.Contains(...)
@@ -90,9 +91,9 @@ namespace Roslyn
                         .OfType<MemberAccessExpressionSyntax>()
                         .Where(x => x.Expression.IsKind(SyntaxKind.IdentifierName))
 
-                        // note, that before were were working just with syntax.
-                        // here we are using semantic model of our code to get
-                        // information about actual type contained in a given variable
+                        // Note, that before we were working just with syntax.
+                        // Here we are using semantic model of our code to get
+                        // information about actual type contained in a given variable.
                         .Select(x =>
                         (
                             // you may want to include namespace
@@ -113,7 +114,7 @@ namespace Roslyn
             });
 
             // You will get some duplication: when context A has similar context B -
-            // then context B will also be recorder to have similar context A.
+            // then context B will also be recorded to have similar context A.
             // This can be removed, but it may be a good idea to leave it there during exploraiton phase.
             var similarContexts = contextsOfInterest.Select(context =>
             {

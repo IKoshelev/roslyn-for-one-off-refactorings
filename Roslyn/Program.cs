@@ -31,7 +31,7 @@ namespace Roslyn
 
             var compilation = new Lazy<Task<Compilation>>(() => project.GetCompilationAsync());
 
-            //await RunQueryExample(allNodes, compilation);
+            await RunQueryExample(allNodes, compilation);
             await RunCodeChangeExample(allNodes, compilation, workspace);
         }
 
@@ -248,8 +248,8 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                     var result = argumentsList.Arguments
                          .Select((node, index) => (node, index))
                          .ToDictionary(
-                             (x) => x.node.NameColon?.Name.ToString()    // named argument
-                                     ?? parameters[x.index].Name,        // positional argument
+                             (x) => x.node.NameColon?.Name.ToString()// named argument
+                                     ?? parameters[x.index].Name,    // positional argument
                              (x) => x.node.Expression);
 
                     return result;
@@ -263,7 +263,7 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
             {
                 solution = solution ?? x.Key.Project.Solution;
                 // 'Solution' is the root node of our entire project graph,
-                // solution  ==1..many==> projects ==1..many==> documents.
+                // solution  ==(1..x)==> projects ==(1..x)==> documents.
                 // Since entire graph is immutable,
                 // any change in it effctively produces a new solution graph,
                 // so we must always start by getting the 'current' version

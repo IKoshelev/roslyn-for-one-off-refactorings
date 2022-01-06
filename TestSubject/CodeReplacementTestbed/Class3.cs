@@ -14,14 +14,14 @@ namespace TestSubject.CodeReplacementTestbed
         {
             string usesPositionInSales = "Sales Analyst";
             string reportName = "SA7: Annual sales report";
-            int userIdInSalesSystems = 8;
-            int userIdInSuplySystem = 8;
+            int salesId = 8;
+            int suplyId = 8;
 
             var scheduleId = reportSchedulingSystem.ScheduleReport(reportName,
-                GetPrioritFlagFromConfigBasedOnUsersPositionInSales(usesPositionInSales), null, null, userIdInSalesSystems, userIdInSuplySystem);
+                GetPriorityFlagFromConfigBasedOnUsersPositionInSales(usesPositionInSales), null, null, salesId, suplyId);
         }
 
-        private bool GetPrioritFlagFromConfigBasedOnUsersPositionInSales(string usePositionInSales)
+        private bool GetPriorityFlagFromConfigBasedOnUsersPositionInSales(string usePositionInSales)
         {
             return config.userCreation.immediatelyActivateUserInPositions.Contains(usePositionInSales);
         }

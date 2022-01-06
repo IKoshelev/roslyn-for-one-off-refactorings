@@ -6,9 +6,9 @@
         public void TaxesReport() 
         {
             string reportName = "T205: My tax forms";
-            int userIdInAccountingSystem = 5;
+            int id = 5;
 
-            var scheduleId = reportSchedulingSystem.ScheduleReport(reportName, false, userIdInAccountingSystem, null, null, null);
+            var scheduleId = reportSchedulingSystem.ScheduleReport(reportName, false, id, null, null, null);
         }
 
         public void OrderedReportsHistoryReport()

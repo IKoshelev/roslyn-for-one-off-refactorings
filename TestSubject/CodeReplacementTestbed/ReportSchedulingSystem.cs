@@ -21,7 +21,7 @@ namespace TestSubject.CodeReplacementTestbed
             int? userIdInAccountingSystem = null,
             int? userIdInHrSystemSystem = null,
             int? userIdInSalesSystem = null,
-            int? userIdInSuplySystem = null)
+            int? userIdInSupplySystem = null)
         {
             var newId = Interlocked.Increment(ref NewIdCounter);
 
@@ -54,7 +54,7 @@ namespace TestSubject.CodeReplacementTestbed
         int? userIdInAccountingSystem = null,
         int? userIdInHrSystemSystem = null,
         int? userIdInSalesSystem = null,
-        int? userIdInSuplySystem = null);
+        int? userIdInSupplySystem = null);
 
     public record ScheduledReport(
         int id,

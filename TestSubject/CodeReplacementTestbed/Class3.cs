@@ -14,10 +14,11 @@ namespace TestSubject.CodeReplacementTestbed
         {
             string usesPositionInSales = "Sales Analyst";
             string reportName = "SA7: Annual sales report";
-            int userIdInSalesSystems= 8;
+            int userIdInSalesSystems = 8;
+            int userIdInSuplySystem = 8;
 
             var scheduleId = reportSchedulingSystem.ScheduleReport(reportName,
-                GetPrioritFlagFromConfigBasedOnUsersPositionInSales(usesPositionInSales), null, null, userIdInSalesSystems);
+                GetPrioritFlagFromConfigBasedOnUsersPositionInSales(usesPositionInSales), null, null, userIdInSalesSystems, userIdInSuplySystem);
         }
 
         private bool GetPrioritFlagFromConfigBasedOnUsersPositionInSales(string usePositionInSales)

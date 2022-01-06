@@ -12,16 +12,16 @@ namespace TestSubject.CodeReplacementTestbed
         public static int NewIdCounter = 1;
 
         // The legacy method we've used before.
-        // It is used across hundreds of places in our code-base.
+        // It is used across thousands of places in our code-base.
         // We would like to get rid of it in an automated manner
         [Obsolete]
         public int ScheduleReport(
             string reportName,
             bool? scheduleWithPriority,
-            int? userIdInAccountingSystem,
-            int? userIdInHrSystemSystem,
-            int? userIdInSalesSystem,
-            int? userIdInSuplySystem)
+            int? userIdInAccountingSystem = null,
+            int? userIdInHrSystemSystem = null,
+            int? userIdInSalesSystem = null,
+            int? userIdInSuplySystem = null)
         {
             var newId = Interlocked.Increment(ref NewIdCounter);
 

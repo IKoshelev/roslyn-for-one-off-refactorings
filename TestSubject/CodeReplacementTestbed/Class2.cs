@@ -11,7 +11,7 @@ namespace TestSubject.CodeReplacementTestbed
         private readonly ReportSchedulingSystem reportSchedulingSystem; // will normaly be injected
         public void PendingShippingOrdersRepport()
         {
-            var scheduleId = reportSchedulingSystem.ScheduleReport("SH10: Pending shipping orders", null, null, null, null, 8);
+            var scheduleId = reportSchedulingSystem.ScheduleReport("SH10: Pending shipping orders", null, userIdInSuplySystem: 8);
         }
     }
 }

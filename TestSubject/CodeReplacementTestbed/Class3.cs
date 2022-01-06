@@ -17,7 +17,7 @@ namespace TestSubject.CodeReplacementTestbed
             int userIdInSalesSystems= 8;
 
             var scheduleId = reportSchedulingSystem.ScheduleReport(reportName,
-                GetPrioritFlagFromConfigBasedOnUsersPositionInSales(usesPositionInSales), null, null, userIdInSalesSystems, null);
+                GetPrioritFlagFromConfigBasedOnUsersPositionInSales(usesPositionInSales), null, null, userIdInSalesSystems);
         }
 
         private bool GetPrioritFlagFromConfigBasedOnUsersPositionInSales(string usePositionInSales)

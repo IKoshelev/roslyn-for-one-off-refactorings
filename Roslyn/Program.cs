@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.Editing;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using Microsoft.CodeAnalysis.Formatting;
 
 namespace Roslyn
 {
@@ -276,8 +277,8 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                     editor.ReplaceNode(
                         context.meta.node,
                         PrepareNewMethodCall(
-                            context.meta.node,
-                            context.meta.arguments));
+                                            context.meta.node,
+                                            context.meta.arguments));
                 }
                 var newDocument = editor.GetChangedDocument();
                 solution = newDocument.Project.Solution;
@@ -389,16 +390,19 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                                         SeparatedList<ArgumentSyntax>(newArgumentNodesList)));
 
                 // Since our new method returns an object intead of just id,
-                // we must now add id extraction after call
+                // we must now add id extraction after call.
                 var getIdFromNewCallResult = MemberAccessExpression(
                                     SyntaxKind.SimpleMemberAccessExpression,
                                     newCall,
                                     IdentifierName("id"));
 
-                // finally, we must remember to call "NormalizeWhitespace",
+                // We must remember to call "NormalizeWhitespace",
                 // without it there will be no spaces at all in code,
-                // and it will not compile 
-                return getIdFromNewCallResult.NormalizeWhitespace();
+                // and it will not compile.
+                getIdFromNewCallResult = getIdFromNewCallResult
+                                            .NormalizeWhitespace(elasticTrivia: true);
+
+                return getIdFromNewCallResult;
             }
         }
 

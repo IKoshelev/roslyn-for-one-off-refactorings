@@ -15,7 +15,7 @@
         {
             string reportName = "S3: Users ordered reports history";
 
-            var scheduleId = reportSchedulingSystem.ScheduleReport(reportName, null, null, null, null, null);
+            var scheduleId = reportSchedulingSystem.ScheduleReport(reportName: reportName, null, null, null, null, null);
         }
     }
 }

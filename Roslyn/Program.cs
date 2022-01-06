@@ -8,6 +8,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
+using Microsoft.CodeAnalysis.Editing;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Roslyn
 {
@@ -30,7 +32,7 @@ namespace Roslyn
             var compilation = new Lazy<Task<Compilation>>(() => project.GetCompilationAsync());
 
             //await RunQueryExample(allNodes, compilation);
-            await RunCodeChangeExample(allNodes, compilation);
+            await RunCodeChangeExample(allNodes, compilation, workspace);
         }
 
         record LogicalExpressionContext(
@@ -193,10 +195,11 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
 
         private static async Task RunCodeChangeExample(
              IEnumerable<(Document document, SyntaxNode node)> allNodes,
-             Lazy<Task<Compilation>> compilation)
+             Lazy<Task<Compilation>> compilation,
+             MSBuildWorkspace workspace)
         {
 
-            var contextsOfInterest = await GetContextsOfInterest(allNodes, async (x) =>
+            var callsToReplace = await GetContextsOfInterest(allNodes, async (x) =>
             {
                 var node = x.node as InvocationExpressionSyntax;
                 if (node == null) { return null; }
@@ -256,8 +259,19 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
 
             // Now we replace all found calls with equivalent calls to new method
 
+            foreach (var x in callsToReplace.GroupBy(x => x.document))
+            {
+                var editor = await DocumentEditor.CreateAsync(x.Key);
 
-
+                foreach (var context in x)
+                {
+                    editor.ReplaceNode(context.meta.node,
+                                            LiteralExpression(
+                                              SyntaxKind.NullLiteralExpression));
+                }
+                var newDocument = editor.GetChangedDocument();
+                workspace.TryApplyChanges(newDocument.Project.Solution);
+            }
         }
 
         private static async Task<IEnumerable<(Document document, SyntaxNode node)>> GetAllNodeOfAllDocuments(Document[] documents)

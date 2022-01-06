@@ -187,10 +187,15 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
             }
         }
 
+        record MethodReplacementContext(
+            InvocationExpressionSyntax node,
+            Dictionary<string, ExpressionSyntax> arguments);
+
         private static async Task RunCodeChangeExample(
              IEnumerable<(Document document, SyntaxNode node)> allNodes,
              Lazy<Task<Compilation>> compilation)
         {
+
             var contextsOfInterest = await GetContextsOfInterest(allNodes, async (x) =>
             {
                 var node = x.node as InvocationExpressionSyntax;
@@ -206,7 +211,7 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                 var model = (await compilation.Value).GetSemanticModel(
                                 await x.document.GetSyntaxTreeAsync());
 
-                var methodSymbol = model.GetSymbolInfo(methodName).Symbol;
+                var methodSymbolInfo = model.GetSymbolInfo(methodName).Symbol;
 
                 // Make sure we've got exactly the method we are looking for,
                 // and not one of its overloads.
@@ -214,23 +219,45 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                     "TestSubject.CodeReplacementTestbed.ReportSchedulingSystem"
                     + ".ScheduleReport(string, bool?, int?, int?, int?, int?)";
 
-                if ( methodSymbol?.ToDisplayString() != displayStringWeAreLookingFor
-                    || false == methodSymbol?.GetAttributes()
+                if ( methodSymbolInfo?.ToDisplayString() != displayStringWeAreLookingFor
+                    || false == methodSymbolInfo?.GetAttributes()
                                     .Any(x => x.AttributeClass?.Name == "ObsoleteAttribute"))
                 {
                     return null;
                 }
 
-                return new object();
-           
-            //    return new LogicalExpressionContext(
-            //        node,
-            //        memberAccessExpressions,
-            //        declaringMethodName,
-            //        declaringTypeName,
-            //        fullText,
-            //        condensedText);
+                // Ok, we've got exactly the method we were looking for.
+                // Now lets get information about call arguments
+                var parsedArguments =  ParseArguments(
+                                            node.ArgumentList, 
+                                            (IMethodSymbol)methodSymbolInfo);
+
+                return new MethodReplacementContext(
+                    node,
+                    parsedArguments);
+
+                static Dictionary<string, ExpressionSyntax> ParseArguments(
+                                                        ArgumentListSyntax argumentsList,
+                                                        IMethodSymbol methodSymbol)
+                {
+                    var parameters = methodSymbol.Parameters.ToArray();
+
+                    var result = argumentsList.Arguments
+                         .Select((node, index) => (node, index))
+                         .ToDictionary(
+                             (x) => x.node.NameColon?.Name.ToString()    // named argument
+                                     ?? parameters[x.index].Name,        // positional argument
+                             (x) => x.node.NameColon?.Expression
+                                     ?? x.node.Expression);
+
+                    return result;
+                }
             });
+
+            // Now we replace all found calls with equivalent calls to new method
+
+
+
         }
 
         private static async Task<IEnumerable<(Document document, SyntaxNode node)>> GetAllNodeOfAllDocuments(Document[] documents)

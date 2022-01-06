@@ -13,13 +13,13 @@ namespace Roslyn
 {
     class Program
     {
+        public static Regex whitespaceRemover = new Regex(@"\s\s+");
+
         async static Task Main(string[] args)
         {
             // make sure Microsoft.CodeAnalysis.CSharp.Workspaces is loaded
             var _ = typeof(Microsoft.CodeAnalysis.CSharp.Formatting.CSharpFormattingOptions);
             MSBuildLocator.RegisterDefaults();
-
-            Regex whitespaceRemover = new Regex(@"\s\s+");
 
             using var workspace = MSBuildWorkspace.Create();
             var project = await workspace.OpenProjectAsync(@"..\..\..\..\TestSubject\TestSubject.csproj");
@@ -29,9 +29,25 @@ namespace Roslyn
 
             var compilation = new Lazy<Task<Compilation>>(() => project.GetCompilationAsync());
 
+            //await RunQueryExample(allNodes, compilation);
+            await RunCodeChangeExample(allNodes, compilation);
+        }
+
+        record LogicalExpressionContext(
+            SyntaxNode node,
+            (string typeName, string memberName)[] memberAccessesInvolved,
+            string declaringMethodName,
+            string declaringTypeName,
+            string fullText,
+            string condensedText);
+
+        private static async Task RunQueryExample(
+            IEnumerable<(Document document, SyntaxNode node)> allNodes, 
+            Lazy<Task<Compilation>> compilation)
+        {
             var contextsOfInterest = await GetContextsOfInterest(allNodes, async (x) =>
             {
-                var partsOfLogicalExpression = new[]{    
+                var partsOfLogicalExpression = new[]{
                                                 SyntaxKind.LogicalOrExpression,
                                                 SyntaxKind.LogicalAndExpression,
                                                 SyntaxKind.LogicalNotExpression,
@@ -97,7 +113,7 @@ namespace Roslyn
                         .Select(x =>
                         (
                             // you may want to include namespace
-                            typeName: model.GetTypeInfo(x.Expression).Type?.Name, 
+                            typeName: model.GetTypeInfo(x.Expression).Type?.Name,
                             memberName: x.Name.Identifier.Text
                         ))
                         .ToArray();
@@ -138,15 +154,84 @@ namespace Roslyn
             .ToArray();
 
             var report = PrepareReport(similarContexts);
+
+            return;
+
+            static string PrepareReport(
+                (Context<LogicalExpressionContext> context, 
+                (Context<LogicalExpressionContext> context, int sameMembersAccessCount)[] similarContexts)[] contexts)
+            {
+                var reportsPerContext = contexts
+                                            .Select(x =>
+@$"Original: {x.context.meta.declaringTypeName}.{x.context.meta.declaringMethodName}
+
+{x.context.meta.fullText}
+
+Similar: 
+
+{string.Join("\r\n", x.similarContexts.Select(y =>
+$@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
+
+{y.context.meta.fullText}
+
+"))}
+");
+
+                var report =
+@$"
+{String.Join("\r\n--------------------------------------------------------------------------------------\r\n",
+    reportsPerContext)}
+";
+
+                return report;
+            }
         }
 
-        record LogicalExpressionContext(
-            SyntaxNode node,
-            (string typeName, string memberName)[] memberAccessesInvolved,
-            string declaringMethodName,
-            string declaringTypeName,
-            string fullText, 
-            string condensedText);
+        private static async Task RunCodeChangeExample(
+             IEnumerable<(Document document, SyntaxNode node)> allNodes,
+             Lazy<Task<Compilation>> compilation)
+        {
+            var contextsOfInterest = await GetContextsOfInterest(allNodes, async (x) =>
+            {
+                var node = x.node as InvocationExpressionSyntax;
+                if (node == null) { return null; }
+
+                var methodMemberAccess = node.Expression as MemberAccessExpressionSyntax;
+                if (methodMemberAccess == null) { return null; }
+
+                var methodName = methodMemberAccess.Name;
+                var methodNameAsText = methodName?.GetText().ToString();
+                if (methodNameAsText != "ScheduleReport") { return null; }
+
+                var model = (await compilation.Value).GetSemanticModel(
+                                await x.document.GetSyntaxTreeAsync());
+
+                var methodSymbol = model.GetSymbolInfo(methodName).Symbol;
+
+                // Make sure we've got exactly the method we are looking for,
+                // and not one of its overloads.
+                var displayStringWeAreLookingFor =
+                    "TestSubject.CodeReplacementTestbed.ReportSchedulingSystem"
+                    + ".ScheduleReport(string, bool?, int?, int?, int?, int?)";
+
+                if ( methodSymbol?.ToDisplayString() != displayStringWeAreLookingFor
+                    || false == methodSymbol?.GetAttributes()
+                                    .Any(x => x.AttributeClass?.Name == "ObsoleteAttribute"))
+                {
+                    return null;
+                }
+
+                return new object();
+           
+            //    return new LogicalExpressionContext(
+            //        node,
+            //        memberAccessExpressions,
+            //        declaringMethodName,
+            //        declaringTypeName,
+            //        fullText,
+            //        condensedText);
+            });
+        }
 
         private static async Task<IEnumerable<(Document document, SyntaxNode node)>> GetAllNodeOfAllDocuments(Document[] documents)
         {
@@ -178,35 +263,5 @@ namespace Roslyn
                     .Where(x => x.meta != null)
                     .ToArray();
         }
-
-        private static string PrepareReport(
-    (Context<LogicalExpressionContext> context, (Context<LogicalExpressionContext> context, int sameMembersAccessCount)[] similarContexts)[] similarContexts)
-        {
-            var reportsPerContext = similarContexts
-                                        .Select(x =>
-@$"Original: {x.context.meta.declaringTypeName}.{x.context.meta.declaringMethodName}
-
-{x.context.meta.fullText}
-
-Similar: 
-
-{string.Join("\r\n", x.similarContexts.Select(y =>
-$@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
-
-{y.context.meta.fullText}
-
-"))}
-");
-
-            var report =
-@$"
-{String.Join("\r\n--------------------------------------------------------------------------------------\r\n",
-reportsPerContext)}
-";
-
-            return report;
-        }
-
-
     }
 }

@@ -231,9 +231,19 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                 }
 
                 // Ok, we've got exactly the method we were looking for.
-                // Now lets get information about call arguments
-                var parsedArguments =  ParseArguments(
-                                            node.ArgumentList, 
+                // Now lets get information about call arguments.
+                // Specifically, we extract the EXPRESSIONS that get 
+                // value for each argument. Expressions may be literals like '8'
+                // and 'null', but they may also be complex method calls of their own,
+                // like .ScheduleReport(reportName, GetPriorityFlag(userRole), ....).
+                // We only care about the type to which each expression evaluates:
+                // whether it is a literal 'true' or an Expression GetPriorityFlag(userRole),
+                // it only matters for us that both are nodes which evaluate to a boolean,
+                // and, as such, can be interchanged or transplanted to any site in the 
+                // SyntaxGraph where a boolean value is expected.
+                // We just need to make sure we reorder them properly and drop unnecessary nulls. 
+                var parsedArguments = ParseArguments(
+                                            node.ArgumentList,
                                             (IMethodSymbol)methodSymbolInfo);
 
                 return new MethodReplacementContext(
@@ -266,7 +276,7 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                 // 'Solution' is the root node of our entire project graph,
                 // solution  ==(1..x)==> projects ==(1..x)==> documents.
                 // Since entire graph is immutable,
-                // any change in it effctively produces a new solution graph,
+                // any change in it effectively produces a new solution graph,
                 // so we must always start by getting the 'current' version
                 // of the document we want to edit.
                 var currentDocument = solution.GetDocument(x.Key.Id);
@@ -298,13 +308,13 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                 // then branches into more branches and so on recursively,
                 // each time dealing with composition of just a few nodes.
                 // There is nothing preventing us from constructing entire sub-tree
-                // in one go, but that aproach is usually harder to read and reason about
+                // in one go, but that approach is usually harder to read and reason about
                 // (you'll see why below).
 
                 // First we prepare new arguments one by one
                 var newReportNameArgument = Argument(oldArgumentExpressions["reportName"]);
 
-                // Luckly for us, these don't change between old and new method,
+                // Luckily for us, names of user ids don't change between old and new method,
                 // else we would have to map them.
                 var userIdParamNames = new string[]
                 {
@@ -322,7 +332,7 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                 SyntaxNode newUserIdsArgument = null;
                 if (userIdExpressions.Any()) 
                 {
-                    // array of 'useIdInSystemX: expression'
+                    // array of 'userIdInSystemX: expression'
                     var userIdsAsNamedArguments = userIdExpressions
                         .Select(x =>
                                 Argument(x.Value)
@@ -340,7 +350,7 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                                                     SeparatedList(userIdsAsNamedArguments))));
                 }
 
-                ;
+                
                 ArgumentSyntax newScheduleWithPriorityArgument = null;
                 if (oldArgumentExpressions.TryGetValue("priority", out var scheduleWithPriorityExpression)
                     && scheduleWithPriorityExpression.Kind() != SyntaxKind.NullLiteralExpression)
@@ -349,13 +359,13 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                 }
 
                 // Now we put new arguments in a list, if they are needed (not null).
-                // To keep things beautifull, we switch to named arguments
+                // To keep things beautiful, we switch to named arguments
                 // once any positional argument is skipped.
 
                 var newArgumentNodesList = new List<SyntaxNodeOrToken>();
                 newArgumentNodesList.Add(newReportNameArgument);
 
-                var switchedToNamedArguemntMode = false;
+                var switchedToNamedArgumentMode = false;
                 if(newUserIdsArgument != null)
                 {
                     newArgumentNodesList.Add(Token(SyntaxKind.CommaToken));
@@ -363,12 +373,12 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                 } 
                 else
                 {
-                    switchedToNamedArguemntMode = true;
+                    switchedToNamedArgumentMode = true;
                 }
 
                 if(newScheduleWithPriorityArgument != null)
                 {
-                    if(switchedToNamedArguemntMode)
+                    if(switchedToNamedArgumentMode)
                     {
                         newScheduleWithPriorityArgument = 
                             newScheduleWithPriorityArgument
@@ -389,7 +399,7 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                                      ArgumentList(
                                         SeparatedList<ArgumentSyntax>(newArgumentNodesList)));
 
-                // Since our new method returns an object intead of just id,
+                // Since our new method returns an object instead of just id,
                 // we must now add id extraction after call.
                 var getIdFromNewCallResult = MemberAccessExpression(
                                     SyntaxKind.SimpleMemberAccessExpression,

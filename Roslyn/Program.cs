@@ -257,11 +257,14 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                 }
             });
 
-            // Now we replace all found calls with equivalent calls to new method
+            Solution solution = null; 
 
+            // Now we replace all found calls with equivalent calls to new method
             foreach (var x in callsToReplace.GroupBy(x => x.document))
             {
-                var editor = await DocumentEditor.CreateAsync(x.Key);
+                solution = solution ?? x.Key.Project.Solution;
+                var currentDocument = solution.GetDocument(x.Key.Id);
+                var editor = await DocumentEditor.CreateAsync(currentDocument);
 
                 foreach (var context in x)
                 {
@@ -270,8 +273,10 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                                               SyntaxKind.NullLiteralExpression));
                 }
                 var newDocument = editor.GetChangedDocument();
-                workspace.TryApplyChanges(newDocument.Project.Solution);
+                solution = newDocument.Project.Solution;
             }
+
+            workspace.TryApplyChanges(solution);
         }
 
         private static async Task<IEnumerable<(Document document, SyntaxNode node)>> GetAllNodeOfAllDocuments(Document[] documents)

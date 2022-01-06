@@ -17,7 +17,7 @@ namespace TestSubject.CodeReplacementTestbed
         [Obsolete]
         public int ScheduleReport(
             string reportName,
-            bool? scheduleWithPriority,
+            bool? priority,
             int? userIdInAccountingSystem = null,
             int? userIdInHrSystemSystem = null,
             int? userIdInSalesSystem = null,

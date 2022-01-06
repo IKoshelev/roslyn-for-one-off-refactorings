@@ -250,8 +250,7 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
                          .ToDictionary(
                              (x) => x.node.NameColon?.Name.ToString()    // named argument
                                      ?? parameters[x.index].Name,        // positional argument
-                             (x) => x.node.NameColon?.Expression
-                                     ?? x.node.Expression);
+                             (x) => x.node.Expression);
 
                     return result;
                 }
@@ -263,20 +262,144 @@ $@"{y.context.meta.declaringTypeName}.{y.context.meta.declaringMethodName}
             foreach (var x in callsToReplace.GroupBy(x => x.document))
             {
                 solution = solution ?? x.Key.Project.Solution;
+                // 'Solution' is the root node of our entire project graph,
+                // solution  ==1..many==> projects ==1..many==> documents.
+                // Since entire graph is immutable,
+                // any change in it effctively produces a new solution graph,
+                // so we must always start by getting the 'current' version
+                // of the document we want to edit.
                 var currentDocument = solution.GetDocument(x.Key.Id);
                 var editor = await DocumentEditor.CreateAsync(currentDocument);
 
                 foreach (var context in x)
                 {
-                    editor.ReplaceNode(context.meta.node,
-                                            LiteralExpression(
-                                              SyntaxKind.NullLiteralExpression));
+                    editor.ReplaceNode(
+                        context.meta.node,
+                        PrepareNewMethodCall(
+                            context.meta.node,
+                            context.meta.arguments));
                 }
                 var newDocument = editor.GetChangedDocument();
                 solution = newDocument.Project.Solution;
             }
 
             workspace.TryApplyChanges(solution);
+
+            static SyntaxNode PrepareNewMethodCall(
+                InvocationExpressionSyntax oldCall, 
+                Dictionary<string, ExpressionSyntax> oldArgumentExpressions)
+            {
+                // When we prepare a new SyntaxTree, we start with the 'leaves',
+                // nodes which have no descendants or very few of them.
+                // This is because, ideally, we don't want to construct
+                // graphs of more than 3 nodes at a time.
+                // When we have the "leaves" - we compose them into branches,
+                // then branches into more branches and so on recursively,
+                // each time dealing with composition of just a few nodes.
+                // There is nothing preventing us from constructing entire sub-tree
+                // in one go, but that aproach is usually harder to read and reason about
+                // (you'll see why below).
+
+                // First we prepare new arguments one by one
+                var newReportNameArgument = Argument(oldArgumentExpressions["reportName"]);
+
+                // Luckly for us, these don't change between old and new method,
+                // else we would have to map them.
+                var userIdParamNames = new string[]
+                {
+                    "userIdInAccountingSystem",
+                    "userIdInHrSystemSystem",
+                    "userIdInSalesSystem",
+                    "userIdInSupplySystem"
+                };
+
+                var userIdExpressions = oldArgumentExpressions
+                                            .Where(x => userIdParamNames.Contains(x.Key)
+                                                        && x.Value.Kind() != SyntaxKind.NullLiteralExpression)
+                                            .ToArray();
+
+                SyntaxNode newUserIdsArgument = null;
+                if (userIdExpressions.Any()) 
+                {
+                    // array of 'useIdInSystemX: expression'
+                    var userIdsAsNamedArguments = userIdExpressions
+                        .Select(x =>
+                                Argument(x.Value)
+                                    .WithNameColon(
+                                        NameColon(IdentifierName(x.Key))));
+
+                    // new UserIdsAcrossSystems(
+                    //      useIdInSystemX: expression,
+                    //      useIdInSystemY: expression)
+                    newUserIdsArgument = Argument(
+                                            ObjectCreationExpression(
+                                              IdentifierName("UserIdsAcrossSystems"))
+                                                .WithArgumentList(
+                                                  ArgumentList(
+                                                    SeparatedList(userIdsAsNamedArguments))));
+                }
+
+                ;
+                ArgumentSyntax newScheduleWithPriorityArgument = null;
+                if (oldArgumentExpressions.TryGetValue("priority", out var scheduleWithPriorityExpression)
+                    && scheduleWithPriorityExpression.Kind() != SyntaxKind.NullLiteralExpression)
+                {
+                    newScheduleWithPriorityArgument = Argument(scheduleWithPriorityExpression);
+                }
+
+                // Now we put new arguments in a list, if they are needed (not null).
+                // To keep things beautifull, we switch to named arguments
+                // once any positional argument is skipped.
+
+                var newArgumentNodesList = new List<SyntaxNodeOrToken>();
+                newArgumentNodesList.Add(newReportNameArgument);
+
+                var switchedToNamedArguemntMode = false;
+                if(newUserIdsArgument != null)
+                {
+                    newArgumentNodesList.Add(Token(SyntaxKind.CommaToken));
+                    newArgumentNodesList.Add(newUserIdsArgument);
+                } 
+                else
+                {
+                    switchedToNamedArguemntMode = true;
+                }
+
+                if(newScheduleWithPriorityArgument != null)
+                {
+                    if(switchedToNamedArguemntMode)
+                    {
+                        newScheduleWithPriorityArgument = 
+                            newScheduleWithPriorityArgument
+                                .WithNameColon(
+                                    NameColon(
+                                        IdentifierName("scheduleWithPriority")));
+                    }
+                    newArgumentNodesList.Add(Token(SyntaxKind.CommaToken));
+                    newArgumentNodesList.Add(newScheduleWithPriorityArgument);
+                }
+
+                var newCall = InvocationExpression(
+                                  MemberAccessExpression(
+                                    SyntaxKind.SimpleMemberAccessExpression,
+                                    (oldCall.Expression as MemberAccessExpressionSyntax).Expression,
+                                    IdentifierName("ScheduleReport")))
+                                .WithArgumentList(
+                                     ArgumentList(
+                                        SeparatedList<ArgumentSyntax>(newArgumentNodesList)));
+
+                // Since our new method returns an object intead of just id,
+                // we must now add id extraction after call
+                var getIdFromNewCallResult = MemberAccessExpression(
+                                    SyntaxKind.SimpleMemberAccessExpression,
+                                    newCall,
+                                    IdentifierName("id"));
+
+                // finally, we must remember to call "NormalizeWhitespace",
+                // without it there will be no spaces at all in code,
+                // and it will not compile 
+                return getIdFromNewCallResult.NormalizeWhitespace();
+            }
         }
 
         private static async Task<IEnumerable<(Document document, SyntaxNode node)>> GetAllNodeOfAllDocuments(Document[] documents)
